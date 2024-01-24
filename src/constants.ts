@@ -7,7 +7,7 @@ export const LABELS = {
     MESSAGE_TITLE: "Message Title",
     MESSAGE_BODY: "Message Body",
     MESSAGE_FOOTER: "Message Footer",
-    FORM_TITLE: "Send /r/{{target}}'s Moderators",
+    FORM_TITLE: "Message /r/{{target}}'s Moderators",
     FORM_DESCRIPTION: "Clicking send will send this as a private message to all moderators of /r/{{target}}.",
     FORM_ACCEPT: "Send",
     FORM_CANCEL: "Cancel",
