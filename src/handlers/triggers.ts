@@ -1,83 +1,64 @@
-import {
-    AppInstall, AppUpgrade, ModAction, ModMail,
-    PostSubmit, PostCreate, PostUpdate, PostDelete, PostReport, PostFlairUpdate,
-    CommentSubmit, CommentCreate, CommentUpdate, CommentDelete, CommentReport,
-} from "@devvit/protos";
-import {TriggerContext, OnTriggerEvent} from "@devvit/public-api";
-import {onAnyTriggerConsoleLog, startSingletonJob} from "devvit-helpers";
+import {MenuItemOnPressEvent, Context, OnTriggerEvent, TriggerContext} from "@devvit/public-api";
+import {AppInstall, AppUpgrade} from "@devvit/protos";
+import {ERRORS} from "../constants.js";
+import {cancelExistingJobs, isModerator, startSingletonJob} from "devvit-helpers";
+import {MessageAppSettings, MessageFormData} from "../types.js";
+import {messageForm} from "../main.js";
 
-// Post Triggers
+export async function onSendItemPressed (event: MenuItemOnPressEvent, context: Context) {
+    console.log("onSendItemPressed", event);
 
-export async function onPostSubmit (event: OnTriggerEvent<PostSubmit>, context: TriggerContext) {
-    return onAnyTriggerConsoleLog(event, context);
+    if (!context.userId) {
+        context.ui.showToast(ERRORS.NOT_LOGGED_IN);
+        console.error("Someone tried to use a moderator-only button without a user ID???", event, context);
+        return;
+    }
+
+    const settings = await context.settings.getAll<MessageAppSettings>();
+    if (!settings.targetSubreddit) {
+        context.ui.showToast(ERRORS.NO_TARGET_SUBREDDIT);
+        return;
+    }
+
+    const user = await context.reddit.getUserById(context.userId);
+    if (!await isModerator(context.reddit, user.username, settings.targetSubreddit)) {
+        context.ui.showToast(ERRORS.NOT_MODERATOR);
+        return;
+    }
+
+    let thing;
+    if (event.location === "post") {
+        thing = await context.reddit.getPostById(event.targetId);
+    } else if (event.location === "comment") {
+        thing = await context.reddit.getCommentById(event.targetId);
+    }
+
+    const formData: MessageFormData = {
+        username: user.username,
+        subredditName: settings.targetSubreddit,
+        title: settings.messageTitle,
+        body: thing?.permalink || "",
+        footer: settings.messageFooter,
+    };
+
+    context.ui.showForm(messageForm, formData);
 }
 
-export async function onPostCreate (event: OnTriggerEvent<PostCreate>, context: TriggerContext) {
-    return onAnyTriggerConsoleLog(event, context);
-}
-
-export async function onPostUpdate (event: OnTriggerEvent<PostUpdate>, context: TriggerContext) {
-    return onAnyTriggerConsoleLog(event, context);
-}
-
-export async function onPostDelete (event: OnTriggerEvent<PostDelete>, context: TriggerContext) {
-    return onAnyTriggerConsoleLog(event, context);
-}
-
-export async function onPostReport (event: OnTriggerEvent<PostReport>, context: TriggerContext) {
-    return onAnyTriggerConsoleLog(event, context);
-}
-
-export async function onPostFlairUpdate (event: OnTriggerEvent<PostFlairUpdate>, context: TriggerContext) {
-    return onAnyTriggerConsoleLog(event, context);
-}
-
-// Comment Triggers
-
-export async function onCommentSubmit (event: OnTriggerEvent<CommentSubmit>, context: TriggerContext) {
-    return onAnyTriggerConsoleLog(event, context);
-}
-
-export async function onCommentCreate (event: OnTriggerEvent<CommentCreate>, context: TriggerContext) {
-    return onAnyTriggerConsoleLog(event, context);
-}
-
-export async function onCommentUpdate (event: OnTriggerEvent<CommentUpdate>, context: TriggerContext) {
-    return onAnyTriggerConsoleLog(event, context);
-}
-
-export async function onCommentDelete (event: OnTriggerEvent<CommentDelete>, context: TriggerContext) {
-    return onAnyTriggerConsoleLog(event, context);
-}
-
-export async function onCommentReport (event: OnTriggerEvent<CommentReport>, context: TriggerContext) {
-    return onAnyTriggerConsoleLog(event, context);
-}
-
-// Mod Triggers
-export async function onModMail (event: OnTriggerEvent<ModMail>, context: TriggerContext) {
-    return onAnyTriggerConsoleLog(event, context);
-}
-
-export async function onModAction (event: OnTriggerEvent<ModAction>, context: TriggerContext) {
-    return onAnyTriggerConsoleLog(event, context);
-}
-
-// All triggers above are there as examples, they all call this function that takes any trigger event and just logs it.
-// I have found myself using this function a lot for figuring out how things work, so I've included it in devvit-helpers.
-// export async function onAnyTriggerConsoleLog (event: OnTriggerEvent<TriggerEventType[TriggerEvent]>, context: TriggerContext) {
-//     console.log(`type: ${event.type}\nevent:\n${JSON.stringify(event)}\ncontext:\n${JSON.stringify(context)}`);
-// }
-
-// App Meta Triggers
-
-export async function onAppChanged (event: OnTriggerEvent<AppInstall | AppUpgrade>, context: TriggerContext) {
-    console.log(`onAppChanged\nevent:\n${JSON.stringify(event)}\ncontext:\n${JSON.stringify(context)}`);
+export async function onAppChanged (_: OnTriggerEvent<AppInstall | AppUpgrade>, context: TriggerContext) {
     try {
-        // This function from devvit-helpers will start a job, but it terminates any other jobs with the same name first.
-        await startSingletonJob(context.scheduler, "someRecurringTask", "*/5 * * * *", {});
+        // const monitorSubredditId = await context.settings.get("monitorSubredditId"); // App scoped setting
+        // Disabled for now because PrivateMessage.markAsRead() is broken and it is missing .subject and .reply()
+        // if (monitorSubredditId !== context.subredditId) {
+        console.log("Not the monitor subreddit, not scheduling mail monitoring job.");
+        await cancelExistingJobs(context.scheduler, "mailMonitorJob");
+        return;
+        // }
+
+        console.log("Scheduling mail monitoring job.");
+        await startSingletonJob(context.scheduler, "mailMonitorJob", "* * * * *");
     } catch (e) {
-        console.error("Failed to schedule someRecurringTask job", e);
+        console.error("Failed to schedule mailMonitorJob job on AppInstall", e);
         throw e;
     }
 }
+

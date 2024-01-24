@@ -2,65 +2,38 @@
 // It also opens up the possibility of internationalization in the future.
 
 export const LABELS = {
-    DICE_ROLL: "Dice Roll",
-    TOGGLE: "Toggle",
-    DROPDOWN_SELECT: "Dropdown",
-    MULTI_SELECT: "Multi-Select",
-    GROUP: "Group",
-    SHORT_TEXT: "String Input",
-    LONG_TEXT: "Paragraph Input",
-    MOD_ACTION: "Template Action (Mod)",
-    MEMBER_ACTION: "Template Action (Member)",
-    LOGGED_OUT_ACTION: "Template Action (Logged Out)",
-    GENERAL_POST_ACTION: "Template Action (Unspecified)",
-    FORM: "Custom Post Form",
-    FORM_ACCEPT: "Submit Custom Post",
+    TARGET_SUBREDDIT: "Target Subreddit",
+    SEND_ITEM: "Message All Mods",
+    MESSAGE_TITLE: "Message Title",
+    MESSAGE_BODY: "Message Body",
+    MESSAGE_FOOTER: "Message Footer",
+    FORM_TITLE: "Send /r/{{target}}'s Moderators",
+    FORM_DESCRIPTION: "Clicking send will send this as a private message to all moderators of /r/{{target}}.",
+    FORM_ACCEPT: "Send",
     FORM_CANCEL: "Cancel",
-    CUSTOM_POST_BUTTON: "Create a Custom Post",
-    CUSTOM_POST_TITLE: "Title",
+    MONITOR_SUBREDDIT: "Monitor Subreddit",
 };
 
 export const HELP_TEXTS = {
-    DICE_ROLL: "This is an example number field, please enter a number between 1 and 6.",
-    TOGGLE: "Literally just an on or off switch.",
-    DROPDOWN_SELECT: "This is an example of a dropdown field, the user can select one of the predefined options.",
-    MULTI_SELECT: "This is an example of a multi-select field, the user can select multiple of the predefined options.",
-    GROUP: "This is an example of a group of fields, here we're just showing a string and a paragraph field.",
-    SHORT_TEXT: "This is just a field for text, but it's tiny.",
-    LONG_TEXT: "This is just a field for text, but it's a bigger box.",
-    GENERAL_POST_ACTION: "This is an example of a menu item without a forUserType property, it will show up for all users.",
-    SHOW_FORM_ACTION: "This is an example of a menu item that shows a form.",
-    FORM: "This is an example of a form, it has a custom submit and cancel button. The fields are the same as the app settings, but that's just because I was too lazy to define two separate forms.",
-    CUSTOM_POST_BUTTON: "This is a of a menu item that submits a custom post example.",
-    CUSTOM_POST_TITLE: "This is used as the title of the custom post.",
+    TARGET_SUBREDDIT: "Enter the name of the subreddit whose moderators will be messaged without a prefix. Please note that the sender must be a moderator of both subreddits and the app must be able to see the target subreddit's moderators (i.e. the target subreddit must be public or the app must be an approved member on the target subreddit).",
+    SEND_ITEM: "Sends a link to the item to all moderators of the configured target subreddit.",
+    MESSAGE_TITLE: "This is a preview of the message title, it cannot be edited.",
+    MESSAGE_BODY: "You can edit the message content here.",
+    MESSAGE_FOOTER: "This is a preview of the message footer, it cannot be edited.",
 };
 
 export const ERRORS = {
-    DICE_ROLL_NAN: "Your dice roll must be a number.",
-    DICE_ROLL_OUT_OF_RANGE: "Your dice roll must be between 1 and 6.",
-    DICE_ROLL_NOT_INTEGER: "Your dice roll must be an integer.",
-    DICE_ROLL_UNLUCKY: "Your number does not match the random number chosen by a fair dice roll. (Hint: https://xkcd.com/221/)",
-    CUSTOM_POST_FAILED: "Failed to submit custom post.",
+    NOT_LOGGED_IN: "You must be logged in to use this feature.",
+    NO_TARGET_SUBREDDIT: "You must configure a target subreddit in the app's settings before using this feature.",
+    NOT_MODERATOR: "You must be a moderator of /r/{{target}} to mass message its moderators.",
 };
 
 export const DEFAULTS = {
-    DICE_ROLL: 6,
-    TOGGLE: false,
-    SELECT: ["Label 1", "value1"],
-    CUSTOM_POST_TITLE: "Custom Post",
+    MESSAGE_TITLE: "Message from /u/{{sender}} for /r/{{target}}",
+    MESSAGE_BODY: "Write Something Here",
+    MESSAGE_FOOTER: "--- \nThis message was sent by a bot on behalf of /u/{{sender}}. Replies are not monitored.",
+    MONITOR_SUBREDDIT: "t5_3acsi", // /r/PitchforkAssistant
 };
 
 export const OPTIONS = {
-    SELECT: [
-        {label: "Label 0", value: "value0"},
-        {label: "Label 1", value: "value1"},
-        {label: "Label 2", value: "value2"},
-        {label: "Label 3", value: "value3"},
-        {label: "Label 4", value: "value4"},
-        {label: "Label 5", value: "value5"},
-        {label: "Label 6", value: "value6"},
-        {label: "Label 7", value: "value7"},
-        {label: "Label 8", value: "value8"},
-        {label: "Label 9", value: "value9"},
-    ],
 };

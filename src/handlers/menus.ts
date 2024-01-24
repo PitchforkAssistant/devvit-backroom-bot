@@ -1,57 +1,79 @@
-import {MenuItemOnPressEvent, MenuItemUserType, FormOnSubmitEvent} from "@devvit/public-api";
-import {Context} from "@devvit/public-api";
-import {customPostPreview} from "../components/customPostType.js";
-import {submitPostFormKey} from "../main.js";
-import {DEFAULTS, ERRORS} from "../constants.js";
+import {Context, Form, FormOnSubmitEvent, SendPrivateMessageOptions} from "@devvit/public-api";
+import {isModerator, placeholdersFromRecord, replacePlaceholders} from "devvit-helpers";
+import {MessageAppSettings, MessageFormData} from "../types.js";
+import {DEFAULTS, ERRORS, HELP_TEXTS, LABELS} from "../constants.js";
 
-export async function formActionPressed (event: MenuItemOnPressEvent, context: Context) {
-    context.ui.showForm(submitPostFormKey);
+export function createMessageForm (data: MessageFormData): Form {
+    const placeholders = placeholdersFromRecord({
+        "{{sender}}": data.username,
+        "{{target}}": data.subredditName,
+    });
+    return {
+        title: replacePlaceholders(LABELS.FORM_TITLE, placeholders),
+        description: replacePlaceholders(LABELS.FORM_DESCRIPTION, placeholders),
+        fields: [
+            {
+                type: "string",
+                name: "messageTitle",
+                label: LABELS.MESSAGE_TITLE,
+                helpText: HELP_TEXTS.MESSAGE_TITLE,
+                defaultValue: replacePlaceholders(data.title, placeholders),
+                disabled: true,
+            },
+            {
+                type: "paragraph",
+                name: "messageBody",
+                label: LABELS.MESSAGE_BODY,
+                helpText: HELP_TEXTS.MESSAGE_BODY,
+                placeholder: DEFAULTS.MESSAGE_BODY,
+                defaultValue: data.body,
+                disabled: false,
+                required: true,
+                lineHeight: 6,
+            },
+            {
+                type: "paragraph",
+                name: "messageFooter",
+                label: LABELS.MESSAGE_FOOTER,
+                helpText: HELP_TEXTS.MESSAGE_FOOTER,
+                defaultValue: replacePlaceholders(data.footer, placeholders),
+                disabled: true,
+                lineHeight: 3,
+            },
+        ],
+        acceptLabel: LABELS.FORM_ACCEPT,
+        cancelLabel: LABELS.FORM_CANCEL,
+    };
 }
 
-export async function formOnSubmit (event: FormOnSubmitEvent, context: Context) {
-    const message = `You submitted the form with values ${JSON.stringify(event.values)}`;
-    console.log(message);
-    context.ui.showToast(message);
-
-    // The logic for creating a custom post.
-    const subredditName = (await context.reddit.getCurrentSubreddit()).name;
-
-    let title = DEFAULTS.CUSTOM_POST_TITLE;
-    if (event.values.title) {
-        title = String(event.values.title);
+export async function onMessageFormSubmit (event: FormOnSubmitEvent, context: Context) {
+    if (!context.userId) {
+        context.ui.showToast(ERRORS.NOT_LOGGED_IN);
+        console.error("Someone tried to use a moderator-only button without a user ID???", event, context);
+        return;
     }
 
-    try {
-        await context.reddit.submitPost({
-            title,
-            subredditName,
-            preview: customPostPreview,
-        });
-        context.ui.showToast({
-            text: "Custom post created!",
-            appearance: "success",
-        });
-    } catch (e) {
-        console.error("Error attempting to create custom post", e);
-        context.ui.showToast(ERRORS.CUSTOM_POST_FAILED);
+    const settings = await context.settings.getAll<MessageAppSettings>();
+    if (!settings.targetSubreddit) {
+        context.ui.showToast(ERRORS.NO_TARGET_SUBREDDIT);
+        return;
     }
-}
 
-// MenuItemOnPressEvent doesn't have a userType property, so we have to pass it in separately based on the menu item.
-export async function menuActionPressed (event: MenuItemOnPressEvent, context: Context) {
-    return menuItemPressed(event, context);
-}
-export async function menuModActionPressed (event: MenuItemOnPressEvent, context: Context) {
-    return menuItemPressed(event, context, "moderator");
-}
-export async function menuLoggedOutPressed (event: MenuItemOnPressEvent, context: Context) {
-    return menuItemPressed(event, context, "loggedOut");
-}
-export async function menuMemberPressed (event: MenuItemOnPressEvent, context: Context) {
-    return menuItemPressed(event, context, "member");
-}
-export async function menuItemPressed (event: MenuItemOnPressEvent, context: Context, userType?: MenuItemUserType) {
-    const message = `You pressed a ${event.location} button! (userType: ${userType ?? ""}, targetId: ${event.targetId})\nevent:\n${JSON.stringify(event)}\ncontext:\n${JSON.stringify(context)}`;
-    console.log(message);
-    context.ui.showToast(message);
+    const user = await context.reddit.getUserById(context.userId);
+    if (!await isModerator(context.reddit, user.username, settings.targetSubreddit)) {
+        context.ui.showToast(ERRORS.NOT_MODERATOR);
+        return;
+    }
+
+    console.log(`Sending message to moderators of /r/${settings.targetSubreddit}`);
+
+    const moderators = await context.reddit.getModerators({subredditName: settings.targetSubreddit}).all();
+    for (const moderator of moderators) {
+        const options: SendPrivateMessageOptions = {
+            subject: `${event.values.messageTitle}`,
+            text: `${event.values.messageBody}\n\n${event.values.messageFooter}`,
+            to: moderator.username,
+        };
+        await context.reddit.sendPrivateMessage(options);
+    }
 }
