@@ -60,8 +60,8 @@ export async function onMessageFormSubmit (event: FormOnSubmitEvent, context: Co
     }
 
     const user = await context.reddit.getUserById(context.userId);
-    if (!await isModerator(context.reddit, user.username, settings.targetSubreddit)) {
-        context.ui.showToast(ERRORS.NOT_MODERATOR);
+    if (!await isModerator(context.reddit, settings.targetSubreddit, user.username)) {
+        context.ui.showToast(ERRORS.NOT_MODERATOR.replace("{{target}}", settings.targetSubreddit));
         return;
     }
 
